@@ -1570,6 +1570,41 @@ def _solve_barrier_nonneg(conjugate_arg,
     hess = np.linalg.inv(precision + np.diag(barrier_hessian(current)))
     return current_value, current, hess
 
+def ind_unbiased_estimate(observed_target, 
+                          cov_target, 
+                          cov_target_score, 
+                          prec_randomizer, 
+                          init_omega,
+                          level=0.9):
+
+    if np.asarray(observed_target).shape in [(), (0,)]:
+        raise ValueError('no target specified')
+
+    observed_target = np.atleast_1d(observed_target)
+    prec_target = np.linalg.inv(cov_target)
+
+    gamma = -cov_target_score.T.dot(prec_target)
+    prec_randomizer = np.asarray(prec_randomizer)
+    linear_target = np.eye(cov_target.shape[0]) + \
+                           cov_target.dot(gamma.T.dot(prec_randomizer).dot(gamma))
+    # cond_cov_target = np.linalg.inv(linear_target).dot(cov_target)
+    ind_unbiased_estimator = observed_target - cov_target.dot(gamma.T.dot(prec_randomizer).dot(init_omega))
+    cov_unbiased_estimator = cov_target.dot(linear_target.T)
+
+    unbiased_Z_scores = ind_unbiased_estimator / np.sqrt(np.diag(cov_unbiased_estimator))
+    unbiased_pvalues = ndist.cdf(unbiased_Z_scores)
+    unbiased_pvalues = 2 * np.minimum(unbiased_pvalues, 1 - unbiased_pvalues)
+
+    alpha = 1 - level
+    quantile = ndist.ppf(1 - alpha / 2.)
+    unbiased_intervals = np.vstack([ind_unbiased_estimator - quantile * np.sqrt(np.diag(cov_unbiased_estimator)),
+                           ind_unbiased_estimator + quantile * np.sqrt(np.diag(cov_unbiased_estimator))]).T
+
+    return (ind_unbiased_estimator, 
+            cov_unbiased_estimator,
+            unbiased_Z_scores, unbiased_pvalues,
+            unbiased_intervals)
+
 def selective_MLE(observed_target, 
                   target_cov, 
                   target_score_cov, 
@@ -1631,9 +1666,6 @@ def selective_MLE(observed_target,
         
     """
 
-    if np.asarray(observed_target).shape in [(), (0,)]:
-        raise ValueError('no target specified')
-
     observed_target = np.atleast_1d(observed_target)
     prec_target = np.linalg.inv(target_cov)
 
@@ -1674,6 +1706,7 @@ def selective_MLE(observed_target,
 
     alpha = 1 - level
     quantile = ndist.ppf(1 - alpha / 2.)
+
     intervals = np.vstack([final_estimator - 
                            quantile * np.sqrt(np.diag(observed_info_mean)),
                            final_estimator + 

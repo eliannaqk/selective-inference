@@ -456,9 +456,30 @@ class constraints(object):
         """
         sqrt_cov, sqrt_inv = self.covariance_factors()[:2]
 
+        # if np.isnan(sqrt_cov).any():
+        #     print("sqrt cov has nan:", sqrt_cov)
+        # if (sqrt_cov==0).any():
+        #     print("sqrt cov has 0:", sqrt_cov)
+        # if np.isnan(sqrt_inv).any():
+        #     print("sqrt inv has nan:", sqrt_inv)
+        # if (sqrt_inv==0).any():
+        #     print("sqrt inv has 0:", sqrt_inv)
+        # print("linear part", self.linear_part)
+
         new_A = self.linear_part.dot(sqrt_cov)
+        # if np.isnan(new_A).any():
+        #     print("new_A has nan:", new_A)
+        # if (new_A==0).any():
+        #     print("new_A has 0:", new_A)
         den = np.sqrt((new_A**2).sum(1))
+        # if np.isnan(den).any():
+        #     print("den has nan:", den)
+        # if (den==0).any():
+        #     print("den has 0:", den)
+        #     print("sqrt cov col sums:", sqrt_cov.sum(1))
         new_b = self.offset - self.linear_part.dot(self.mean)
+        # if np.isnan(new_b).any():
+        #     print("new_b has nan:", new_b)
         new_con = constraints(new_A / den[:,None], new_b / den)
 
         mu = self.mean.copy()
