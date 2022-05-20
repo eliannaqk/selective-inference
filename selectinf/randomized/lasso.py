@@ -947,7 +947,7 @@ class split_lasso(lasso):
                                      0)
         
         randomized_loss = self.loglike.subsample(self._selection_idx)
-        randomized_loss.coef *= inv_frac
+        #randomized_loss.coef *= inv_frac
 
         problem = rr.simple_problem(randomized_loss, self.penalty)
         initial_soln = problem.solve(quad, **solve_args) 
